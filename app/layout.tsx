@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Orbitron } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import Head from "next/head";
 import "./globals.css";
 import FirebaseProvider from "@/components/FirebaseProvider";
