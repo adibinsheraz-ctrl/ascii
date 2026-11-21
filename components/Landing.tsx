@@ -42,7 +42,7 @@ export function Landing(props: {
           <button
             type="button"
             onClick={props.onCamera}
-            className="group min-h-12 flex-1 bg-accent px-6 font-mono text-[13px] tracking-[0.16em] text-black font-semibold transition-all hover:brightness-105 active:scale-[0.98] shadow-[0_0_24px_rgba(124,255,178,0.22)] flex items-center justify-center gap-2.5 rounded-sm"
+            className="btn-primary flex-1"
           >
             <svg
               className="h-4 w-4 transition-transform group-hover:scale-110"
@@ -61,7 +61,7 @@ export function Landing(props: {
           <button
             type="button"
             onClick={props.onUpload}
-            className="group min-h-12 flex-1 border border-white/20 bg-white/[0.04] px-6 font-mono text-[13px] tracking-[0.16em] text-white transition-all hover:bg-white/[0.09] hover:border-white/35 active:scale-[0.98] flex items-center justify-center gap-2.5 rounded-sm"
+            className="btn-secondary flex-1"
           >
             <svg
               className="h-4 w-4 text-white/70 transition-transform group-hover:-translate-y-0.5"

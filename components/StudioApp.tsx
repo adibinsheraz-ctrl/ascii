@@ -661,11 +661,10 @@ export function StudioApp() {
               <button
                 type="button"
                 onClick={toggleRecord}
-                className={`h-11 px-4 rounded-full border text-[11px] font-mono tracking-wider flex items-center gap-2 backdrop-blur-md transition-all active:scale-95 ${
-                  recording
+                className={`h-11 px-4 rounded-full border text-[11px] font-mono tracking-wider flex items-center gap-2 backdrop-blur-md transition-all active:scale-95 ${recording
                     ? "border-red-500 bg-red-500/20 text-red-400"
                     : "border-white/20 bg-black/60 text-white/80 hover:bg-black/80 hover:text-white"
-                }`}
+                  }`}
                 aria-label={recording ? "Stop recording clip" : "Record video clip"}
               >
                 <span className={`h-2.5 w-2.5 rounded-full ${recording ? "bg-red-500 animate-ping" : "bg-red-400"}`} />
@@ -686,11 +685,10 @@ export function StudioApp() {
               <button
                 type="button"
                 onClick={() => setPanelOpen((v) => !v)}
-                className={`h-11 px-4 rounded-full border text-[11px] font-mono tracking-wider flex items-center gap-2 backdrop-blur-md transition-all active:scale-95 ${
-                  panelOpen
+                className={`h-11 px-4 rounded-full border text-[11px] font-mono tracking-wider flex items-center gap-2 backdrop-blur-md transition-all active:scale-95 ${panelOpen
                     ? "border-accent bg-accent/25 text-accent font-semibold"
                     : "border-white/20 bg-black/60 text-white/80 hover:bg-black/80 hover:text-white"
-                }`}
+                  }`}
                 aria-label="Toggle sliders"
               >
                 Tune
@@ -701,9 +699,8 @@ export function StudioApp() {
 
         {/* Desktop Sliding Drawer (lg+) */}
         <aside
-          className={`hidden lg:flex flex-col border-l border-white/8 bg-[#0c0c0c] transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
-            panelOpen ? "w-[360px] opacity-100" : "w-0 opacity-0 pointer-events-none"
-          }`}
+          className={`hidden lg:flex flex-col border-l border-white/8 bg-[#0c0c0c] transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${panelOpen ? "w-[360px] opacity-100" : "w-0 opacity-0 pointer-events-none"
+            }`}
         >
           <div className="w-[360px] flex flex-col h-full overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-white/8">
@@ -733,16 +730,14 @@ export function StudioApp() {
 
       {/* Mobile Sliding Bottom Sheet (< lg) */}
       <div
-        className={`fixed inset-0 bg-black/60 z-30 lg:hidden transition-opacity duration-300 ${
-          panelOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black/60 z-30 lg:hidden transition-opacity duration-300 ${panelOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
         onClick={() => setPanelOpen(false)}
         aria-hidden="true"
       />
       <div
-        className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out lg:hidden max-h-[75dvh] ${
-          panelOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
-        }`}
+        className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out lg:hidden max-h-[75dvh] ${panelOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
+          }`}
         role="dialog"
         aria-label="Settings and Tuning Drawer"
       >
@@ -823,13 +818,12 @@ function IconButton(props: {
       type="button"
       aria-label={props.label}
       onClick={props.onClick}
-      className={`min-h-10 min-w-10 rounded-sm border px-3 font-mono text-[11px] tracking-wider transition-all active:scale-95 flex items-center justify-center ${
-        props.primary
+      className={`min-h-10 min-w-10 rounded-sm border px-3 font-mono text-[11px] tracking-wider transition-all active:scale-95 flex items-center justify-center ${props.primary
           ? "border-accent bg-accent text-black font-semibold shadow-[0_0_12px_rgba(124,255,178,0.25)]"
           : props.active
             ? "border-accent bg-accent/20 text-accent font-medium shadow-[0_0_8px_rgba(124,255,178,0.15)]"
             : "border-white/10 text-white/80 hover:border-white/25 hover:text-white"
-      }`}
+        }`}
     >
       {props.children}
     </button>
@@ -861,3 +855,4 @@ function CameraError(props: {
     </div>
   );
 }
+
