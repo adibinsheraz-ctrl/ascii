@@ -11,8 +11,8 @@ const SAMPLES = [
 
 export function Landing(props: {
   onCamera: () => void;
-  onUpload: () => void;
-  onFile: (file: File) => void;
+  onUpload?: () => void;
+  onFile?: (file: File) => void;
   onSample?: (src: string) => void;
 }) {
   return (
@@ -34,7 +34,7 @@ export function Landing(props: {
         </h1>
 
         <p className="mt-6 max-w-lg text-pretty text-[17px] leading-relaxed text-white/80 font-normal">
-          Open the camera or drop a photo. Type is cut from the picture, sharp enough to print.
+          Open the camera to turn live video into print-sharp ASCII type. 100% private and processed in real time on-device.
         </p>
 
         {/* Primary Action Buttons */}
@@ -42,7 +42,7 @@ export function Landing(props: {
           <button
             type="button"
             onClick={props.onCamera}
-            className="btn-primary flex-1"
+            className="btn-primary flex-1 sm:flex-initial sm:min-w-[220px]"
           >
             <svg
               className="h-4 w-4 transition-transform group-hover:scale-110"
@@ -58,61 +58,15 @@ export function Landing(props: {
             <span>Open Camera</span>
           </button>
 
-          <button
-            type="button"
-            onClick={props.onUpload}
-            className="btn-secondary flex-1"
-          >
-            <svg
-              className="h-4 w-4 text-white/70 transition-transform group-hover:-translate-y-0.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            <span>Upload Photo</span>
-          </button>
-
           {props.onSample && (
             <button
               type="button"
               onClick={() => props.onSample?.("/samples/portrait.jpg")}
-              className="min-h-12 px-5 border border-accent/25 font-mono text-[13px] tracking-[0.16em] text-accent hover:border-accent hover:bg-accent/10 bg-accent/5 transition-all active:scale-[0.98] flex items-center justify-center gap-2 rounded-sm"
+              className="btn-secondary sm:w-auto"
             >
               <span>Try Sample</span>
             </button>
           )}
-        </div>
-
-        {/* Drag and Drop Zone */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={props.onUpload}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              props.onUpload();
-            }
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "copy";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const f = e.dataTransfer.files[0];
-            if (f) props.onFile(f);
-          }}
-          aria-label="Drop an image or click to upload"
-          className="group mt-6 min-h-24 cursor-pointer rounded-lg border border-dashed border-white/15 bg-black/50 px-5 py-6 text-center font-mono text-[12px] text-white/50 transition-all hover:border-accent/60 hover:bg-white/[0.02]"
-        >
-          <div className="flex items-center justify-center gap-2 text-white/70 group-hover:text-accent transition-colors">
-            <span>Drop a JPG, PNG, WEBP, or HEIC or paste from clipboard</span>
-          </div>
         </div>
 
         {/* Curated Sample Gallery for Instant Quality Proof */}

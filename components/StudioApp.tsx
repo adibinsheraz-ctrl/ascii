@@ -70,7 +70,6 @@ export function StudioApp() {
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const fileRef = useRef<HTMLInputElement | null>(null);
   const {
     videoRef,
     start: startStream,
@@ -468,37 +467,17 @@ export function StudioApp() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const fileInput = (
-    <input
-      ref={fileRef}
-      type="file"
-      accept="image/*,.heic,.heif"
-      className="hidden"
-      onChange={(e) => {
-        const f = e.target.files?.[0];
-        if (f) void onFile(f);
-        e.target.value = "";
-      }}
-    />
-  );
-
   if (view === "landing") {
     return (
-      <>
-        {fileInput}
-        <Landing
-          onCamera={() => void startCamera()}
-          onUpload={() => fileRef.current?.click()}
-          onFile={(f) => void onFile(f)}
-          onSample={(src) => void onSample(src)}
-        />
-      </>
+      <Landing
+        onCamera={() => void startCamera()}
+        onSample={(src) => void onSample(src)}
+      />
     );
   }
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-foreground">
-      {fileInput}
 
       {/* Top Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/8 bg-bg/95 px-4 py-2.5 backdrop-blur-md pt-[max(0.65rem,env(safe-area-inset-top))]">
@@ -573,11 +552,6 @@ export function StudioApp() {
                 Mirror
               </IconButton>
             </>
-          )}
-          {view === "image" && (
-            <IconButton label="Upload another image" onClick={() => fileRef.current?.click()}>
-              New
-            </IconButton>
           )}
           <IconButton
             label="Tune settings"
