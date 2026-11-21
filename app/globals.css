@@ -28,14 +28,7 @@
 }
 
 /* Theme overrides – use our custom variables */
-@theme inline {
-  --color-bg: var(--bg);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-}
+
 
 html {
   background: var(--carbon-fiber);
