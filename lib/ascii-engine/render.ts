@@ -98,61 +98,35 @@ export function renderGridToContext(params: {
     (cellH - (metrics.fontBoundingBoxAscent || fontSize) - (metrics.fontBoundingBoxDescent || 0)) / 2 +
     ascent;
 
-  const uniform = UNIFORM_MODES.has(palette.colorMode);
-  const ink = glyphColor(
-    palette.colorMode,
-    1,
-    255,
-    255,
-    255,
-    palette.customAccent,
-    palette.duotoneLow,
-    palette.duotoneHigh,
-  );
+  const aw = bank.atlasCellW;
+  const ah = bank.atlasCellH;
+  const acols = bank.atlasCols;
+  const useAtlas = Boolean(fast) && cellW < 12;
 
-  if (uniform) {
-    ctx.fillStyle = `rgb(${ink[0]},${ink[1]},${ink[2]})`;
-    const advance = Math.max(0.001, ctx.measureText("M").width);
-    const scaleX = cellW / advance;
-    for (let row = 0; row < grid.rows; row++) {
-      let line = "";
-      for (let col = 0; col < grid.cols; col++) {
-        line += grid.cells[row * grid.cols + col]?.char ?? " ";
-      }
-      ctx.setTransform(scaleX, 0, 0, 1, 0, 0);
-      ctx.fillText(line, 0, row * cellH + yBase);
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-  } else {
-    const aw = bank.atlasCellW;
-    const ah = bank.atlasCellH;
-    const acols = bank.atlasCols;
-    const useAtlas = Boolean(fast) && cellW < 10;
-    for (let i = 0; i < grid.cells.length; i++) {
-      const cell = grid.cells[i];
-      if (cell.char === " ") continue;
-      const col = i % grid.cols;
-      const row = (i / grid.cols) | 0;
-      const [r, g, b] = glyphColor(
-        palette.colorMode,
-        cell.luma,
-        cell.r,
-        cell.g,
-        cell.b,
-        palette.customAccent,
-        palette.duotoneLow,
-        palette.duotoneHigh,
-      );
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      const dx = col * cellW;
-      const dy = row * cellH;
-      if (useAtlas) {
-        const sx = (cell.glyphIndex % acols) * aw;
-        const sy = ((cell.glyphIndex / acols) | 0) * ah;
-        ctx.drawImage(bank.atlas as CanvasImageSource, sx, sy, aw, ah, dx, dy, cellW, cellH);
-      } else {
-        ctx.fillText(cell.char, dx, dy + yBase);
-      }
+  for (let i = 0; i < grid.cells.length; i++) {
+    const cell = grid.cells[i];
+    if (!cell || cell.char === " ") continue;
+    const col = i % grid.cols;
+    const row = (i / grid.cols) | 0;
+    const [r, g, b] = glyphColor(
+      palette.colorMode,
+      cell.luma,
+      cell.r,
+      cell.g,
+      cell.b,
+      palette.customAccent,
+      palette.duotoneLow,
+      palette.duotoneHigh,
+    );
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    const dx = col * cellW;
+    const dy = row * cellH;
+    if (useAtlas && bank.atlas) {
+      const sx = (cell.glyphIndex % acols) * aw;
+      const sy = ((cell.glyphIndex / acols) | 0) * ah;
+      ctx.drawImage(bank.atlas as CanvasImageSource, sx, sy, aw, ah, dx, dy, cellW, cellH);
+    } else {
+      ctx.fillText(cell.char, dx + (cellW - ctx.measureText(cell.char).width) / 2, dy + yBase);
     }
   }
 

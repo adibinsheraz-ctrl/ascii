@@ -70,17 +70,16 @@ export function convertLive(
   state: LiveState,
   background: AsciiGrid["background"] = "black",
 ): AsciiGrid {
-  const cols = Math.max(40, Math.min(240, Math.round(settings.columns)));
+  const cols = Math.max(30, Math.min(360, Math.round(settings.columns)));
   const rows = studioRows(frame.width, frame.height, cols, bank.metrics.aspect);
   ensureState(state, cols, rows);
 
   const { data, width, height } = frame;
-  const { gain, offset, gamma } = autoExposureContrast(data);
   const contrast = settings.contrast;
   const brightness = settings.brightness;
+  const gamma = settings.gamma;
   const invert = settings.invert;
-  const hysteresis = 0.045;
-  const smooth = 0.38;
+  const maxG = bank.glyphs.length - 1;
 
   const cells: AsciiCell[] = new Array(cols * rows);
 
@@ -90,85 +89,65 @@ export function convertLive(
       const x1 = Math.max(x0 + 1, (((col + 1) / cols) * width) | 0);
       const y0 = ((row / rows) * height) | 0;
       const y1 = Math.max(y0 + 1, (((row + 1) / rows) * height) | 0);
-      const mx = (x0 + x1) >> 1;
-      const my = (y0 + y1) >> 1;
-      const midX = Math.max(x0, Math.min(width - 1, mx));
-      const midY = Math.max(y0, Math.min(height - 1, my));
 
-      const sampleQuad = (sx0: number, sy0: number, sx1: number, sy1: number) => {
-        let ySum = 0;
-        let rSum = 0;
-        let gSum = 0;
-        let bSum = 0;
-        let n = 0;
-        const stepX = Math.max(1, ((sx1 - sx0) / 3) | 0);
-        const stepY = Math.max(1, ((sy1 - sy0) / 3) | 0);
-        for (let y = sy0; y < sy1; y += stepY) {
-          for (let x = sx0; x < sx1; x += stepX) {
-            const i = (y * width + x) * 4;
-            const r = srgbToLinear(data[i]);
-            const g = srgbToLinear(data[i + 1]);
-            const b = srgbToLinear(data[i + 2]);
-            ySum += linearLuma(r, g, b);
-            rSum += data[i];
-            gSum += data[i + 1];
-            bSum += data[i + 2];
-            n++;
-          }
-        }
-        const inv = n ? 1 / n : 0;
-        return { y: ySum * inv, r: rSum * inv, g: gSum * inv, b: bSum * inv };
-      };
+      let rSum = 0;
+      let gSum = 0;
+      let bSum = 0;
+      let count = 0;
 
-      const tl = sampleQuad(x0, y0, midX, midY);
-      const tr = sampleQuad(midX, y0, x1, midY);
-      const bl2 = sampleQuad(x0, midY, midX, y1);
-      const br = sampleQuad(midX, midY, x1, y1);
+      // 4-tap multi-tap sampling matching the WebGL shader
+      const dx = (x1 - x0) * 0.22;
+      const dy = (y1 - y0) * 0.22;
+      const midX = (x0 + x1) * 0.5;
+      const midY = (y0 + y1) * 0.5;
+      const taps = [
+        [midX - dx, midY - dy],
+        [midX + dx, midY - dy],
+        [midX - dx, midY + dy],
+        [midX + dx, midY + dy],
+      ];
 
-      const tone = (y: number) => {
-        let v = y * gain + offset;
-        v = (v - 0.5) * contrast + 0.5 + brightness;
-        v = Math.max(0, Math.min(1, v));
-        v = v ** gamma;
-        return invert ? 1 - v : v;
-      };
-
-      const q1 = tone(tl.y);
-      const q2 = tone(tr.y);
-      const q3 = tone(bl2.y);
-      const q4 = tone(br.y);
-      const mean = (q1 + q2 + q3 + q4) * 0.25;
-      const i = row * cols + col;
-      const mixed = state.glyph[i] < 0 ? mean : state.luma[i] * (1 - smooth) + mean * smooth;
-      state.luma[i] = mixed;
-
-      let gi = state.glyph[i];
-      if (gi < 0 || Math.abs(mixed - state.committed[i]) > hysteresis) {
-        gi = lookupLive(bank, q1, q2, q3, q4);
-        if (Math.abs(bank.glyphs[gi].mean - mixed) > 0.22) {
-          let best = gi;
-          let bd = Infinity;
-          for (let g = 0; g < bank.glyphs.length; g++) {
-            const d = Math.abs(bank.glyphs[g].mean - mixed);
-            if (d < bd) {
-              bd = d;
-              best = g;
-            }
-          }
-          gi = best;
-        }
-        state.glyph[i] = gi;
-        state.committed[i] = mixed;
+      for (const [tx, ty] of taps) {
+        const x = Math.max(0, Math.min(width - 1, tx | 0));
+        const y = Math.max(0, Math.min(height - 1, ty | 0));
+        const idx = (y * width + x) * 4;
+        rSum += data[idx];
+        gSum += data[idx + 1];
+        bSum += data[idx + 2];
+        count++;
       }
 
-      const g = bank.glyphs[gi];
+      const inv = 1 / count;
+      const avgR = rSum * inv;
+      const avgG = gSum * inv;
+      const avgB = bSum * inv;
+
+      // Linear luminance matching WebGL shader
+      const linR = srgbToLinear(avgR);
+      const linG = srgbToLinear(avgG);
+      const linB = srgbToLinear(avgB);
+      let luma = linearLuma(linR, linG, linB);
+
+      // Tone processing matching WebGL shader
+      luma = (luma - 0.5) * contrast + 0.5 + brightness;
+      luma = Math.max(0, Math.min(1, luma));
+      luma = luma ** gamma;
+      if (invert) {
+        luma = 1.0 - luma;
+      }
+
+      // Pick glyph index proportional to luminance matching WebGL shader
+      const gIdx = Math.max(0, Math.min(maxG, Math.round(luma * maxG)));
+      const g = bank.glyphs[gIdx];
+      const i = row * cols + col;
+
       cells[i] = {
-        glyphIndex: gi,
+        glyphIndex: gIdx,
         char: g.char,
-        luma: mixed,
-        r: Math.round((tl.r + tr.r + bl2.r + br.r) * 0.25),
-        g: Math.round((tl.g + tr.g + bl2.g + br.g) * 0.25),
-        b: Math.round((tl.b + tr.b + bl2.b + br.b) * 0.25),
+        luma,
+        r: Math.round(avgR),
+        g: Math.round(avgG),
+        b: Math.round(avgB),
       };
     }
   }
