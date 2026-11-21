@@ -27,13 +27,14 @@
   --font-mono: "JetBrains Mono ASCII", var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Theme overrides – use our custom variables */
 @theme inline {
   --color-bg: var(--bg);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono ASCII", var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 html {
