@@ -14,7 +14,7 @@ import { AdaptiveQualityController, type QualityState } from "@/lib/ascii-engine
 import { profileDevice, type DeviceProfile } from "@/lib/ascii-engine/device";
 import { detectFaces } from "@/lib/ascii-engine/faces";
 import { createGlyphBank } from "@/lib/ascii-engine/glyphs";
-import { imageDataFromSource, imageDataFromUrl } from "@/lib/ascii-engine/decode";
+import { imageDataFromSource } from "@/lib/ascii-engine/decode";
 import { studioRows } from "@/lib/ascii-engine/studio";
 import {
   DEFAULT_FINISH,
@@ -177,23 +177,24 @@ export function StudioApp() {
   }, []);
 
   const runStudio = useCallback(
-    async (image: ImageData) => {
+    async (image: ImageData, customSettings?: AsciiSettings) => {
       if (!bank) return;
       const gen = ++studioGen.current;
       setBusy(true);
-      setStatus("Studio render");
+      setStatus("Processing ASCII");
       setScanKey((k) => k + 1);
+      const activeCurrentSettings = customSettings || settings;
       try {
-        const faces = settings.faceAware ? await detectFaces(await createImageBitmap(image)) : [];
+        const faces = activeCurrentSettings.faceAware ? await detectFaces(await createImageBitmap(image)) : [];
         const next = await engineRef.current.studio(
           image,
-          { ...settings, columns: Math.max(settings.columns, 160) },
+          { ...activeCurrentSettings, columns: activeCurrentSettings.columns },
           faces,
           background,
         );
         if (gen !== studioGen.current) return;
         setGrid(next);
-        setStatus("Studio");
+        setStatus("Ready");
       } catch {
         if (gen !== studioGen.current) return;
         setStatus("Render failed");
@@ -216,25 +217,6 @@ export function StudioApp() {
         await runStudio(image);
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "That file could not be read as an image.");
-        setBusy(false);
-        setStatus("Read failed");
-      }
-    },
-    [runStudio],
-  );
-
-  const onSample = useCallback(
-    async (src: string) => {
-      setView("image");
-      setLoadError(null);
-      setStatus("Loading sample");
-      try {
-        const image = await imageDataFromUrl(src);
-        sourceRef.current = image;
-        setSourceDim({ width: image.width, height: image.height });
-        await runStudio(image);
-      } catch (err) {
-        setLoadError(err instanceof Error ? err.message : "That sample could not be loaded.");
         setBusy(false);
         setStatus("Read failed");
       }
@@ -395,6 +377,13 @@ export function StudioApp() {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
     haptic(18);
+    setBusy(true);
+    setStatus("Processing photo");
+
+    // Retain exact settings applied by the user on the live camera
+    const appliedSettings = { ...liveSettingsRef.current };
+    setSettings(appliedSettings);
+
     const c = document.createElement("canvas");
     c.width = video.videoWidth;
     c.height = video.videoHeight;
@@ -410,7 +399,7 @@ export function StudioApp() {
     setSourceDim({ width: image.width, height: image.height });
     stopStream();
     setView("image");
-    await runStudio(image);
+    await runStudio(image, appliedSettings);
   };
 
   const startCamera = async () => {
@@ -471,7 +460,6 @@ export function StudioApp() {
     return (
       <Landing
         onCamera={() => void startCamera()}
-        onSample={(src) => void onSample(src)}
       />
     );
   }
@@ -597,6 +585,24 @@ export function StudioApp() {
         >
           {busy && !grid && <div className="absolute inset-0 skeleton" />}
           {busy && <div key={scanKey} className="convert-scan" />}
+
+          {/* Cyber Loader Overlay */}
+          {busy && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none transition-all">
+              <div className="relative flex items-center justify-center">
+                <div className="h-16 w-16 rounded-full border-2 border-accent/20 border-t-accent animate-spin" />
+                <span className="absolute font-mono text-[9px] text-accent font-bold tracking-widest uppercase">
+                  ASCII
+                </span>
+              </div>
+              <p className="mt-4 font-mono text-[12px] tracking-[0.2em] text-white uppercase font-semibold">
+                {status || "Rendering"}
+              </p>
+              <p className="mt-1 font-mono text-[10px] tracking-wider text-accent/70">
+                Applying your settings…
+              </p>
+            </div>
+          )}
           <video ref={videoRef} className="pointer-events-none absolute h-0 w-0 opacity-0" playsInline muted autoPlay />
           {view === "camera" && activeEngine === "WebGL2 (GPU)" ? (
             <canvas
