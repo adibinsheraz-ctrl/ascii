@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ASCII
 
-## Getting Started
+A private, on-device web app that turns a live camera or a still photo into print-sharp ASCII art. Nothing is uploaded.
 
-First, run the development server:
+**Agents / Antigravity:** read [`PROJECT.md`](./PROJECT.md) first. It is the full project record, architecture, and TODO list.
+
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm start` | Serve the production build |
+| `npm run lint` | ESLint |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sample photos live in `public/samples/`. The quality lab is at `/dev/test`.
 
-## Learn More
+## How the engine works
 
-To learn more about Next.js, take a look at the following resources:
+Conversion never maps brightness to a character and stops there. The pipeline is a **character grid**: each cell is a glyph plus color. Preview and export draw that grid at the target pixel size (HD, 4K, 8K). A small preview bitmap is never stretched.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Live (camera)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Downscales the frame for speed (about 960px wide), then shape-matches with a **2×2 luminance LUT**.
+- Auto exposure and contrast for bad lighting.
+- Temporal smoothing plus hysteresis so glyphs do not flicker between frames.
+- Target: 30fps+ on a mid-range phone, via a Web Worker.
 
-## Deploy on Vercel
+### Studio (snapshot and upload)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Runs from the **full-resolution** source:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Linear-light conversion (Rec. 709 luma, sRGB gamma).
+2. Auto levels, optional edge-preserving denoise, CLAHE, unsharp mask.
+3. Face-aware contrast if the browser exposes `FaceDetector`.
+4. Sobel edges; strong contours can lock to `/ \ \| _ -`.
+5. Each cell is supersampled (12×24 patch, 4×8 regions) and matched to pre-rasterized glyphs.
+6. Optional Floyd–Steinberg, ordered, or blue-noise dither.
+
+Cell height follows the real metrics of JetBrains Mono so the picture is not stretched.
+
+### Rendering and export
+
+Glyphs are drawn with `fillText` / a glyph atlas at the export size. Large canvases are tiled; if the device hits a canvas cap (common on iOS), the file is limited to the safe size and the UI says so. SVG export has no pixel cap.
+
+Formats: PNG, JPEG, SVG, TXT, HTML. File names: `ASCII_YYYYMMDD_HHMMSS.ext`.
+
+## Privacy
+
+Images and video are decoded and converted in the browser (main thread + worker). There is no upload API.
+
+## Stack
+
+Next.js (App Router), TypeScript, Tailwind CSS, Web Workers, OffscreenCanvas, JetBrains Mono.
