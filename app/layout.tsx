@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Orbitron } from "next/font/google";
-import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import Head from "next/head";
 import "./globals.css";
 import FirebaseProvider from "@/components/FirebaseProvider";
 
@@ -68,6 +68,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${orbitron.variable} h-full antialiased`}
     >
+      <Head>
+        <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-PLSPTMJW"></script>
+        <script dangerouslySetInnerHTML={{ __html: "window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date());" }} />
+      </Head>
       <body className="min-h-full flex flex-col bg-bg text-foreground">
         <a
           href="#main"
