@@ -186,7 +186,7 @@ export class WebGL2AsciiRenderer {
       depth: false,
       stencil: false,
       powerPreference: "high-performance",
-      preserveDrawingBuffer: false,
+      preserveDrawingBuffer: true,
     });
     if (!gl) throw new Error("WebGL2 not supported on this device");
     this.gl = gl;

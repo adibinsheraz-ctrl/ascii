@@ -12,7 +12,6 @@ import { useClipboardImage } from "@/hooks/useClipboardImage";
 import { haptic } from "@/hooks/useHaptics";
 import { AdaptiveQualityController, type QualityState } from "@/lib/ascii-engine/adaptive";
 import { profileDevice, type DeviceProfile } from "@/lib/ascii-engine/device";
-import { detectFaces } from "@/lib/ascii-engine/faces";
 import { createGlyphBank } from "@/lib/ascii-engine/glyphs";
 import { imageDataFromSource } from "@/lib/ascii-engine/decode";
 import { studioRows } from "@/lib/ascii-engine/studio";
@@ -185,11 +184,9 @@ export function StudioApp() {
       setScanKey((k) => k + 1);
       const activeCurrentSettings = customSettings || settings;
       try {
-        const faces = activeCurrentSettings.faceAware ? await detectFaces(await createImageBitmap(image)) : [];
-        const next = await engineRef.current.studio(
+        const next = await engineRef.current.live(
           image,
           { ...activeCurrentSettings, columns: activeCurrentSettings.columns },
-          faces,
           background,
         );
         if (gen !== studioGen.current) return;
@@ -548,9 +545,11 @@ export function StudioApp() {
           >
             Settings
           </IconButton>
-          <IconButton label="Export" onClick={() => setExportOpen(true)} primary>
-            Export
-          </IconButton>
+          {view === "image" && (
+            <IconButton label="Export" onClick={() => setExportOpen(true)} primary>
+              Export
+            </IconButton>
+          )}
         </div>
       </header>
 
@@ -575,7 +574,11 @@ export function StudioApp() {
       <div id="main" className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
         {/* Canvas & Camera Area (Fixed at top/center) */}
         <div
-          className="relative flex flex-1 items-center justify-center overflow-hidden bg-black min-h-[50dvh]"
+          className={`relative flex flex-1 items-center justify-center overflow-hidden bg-black transition-all duration-300 ${
+            panelOpen && view === "camera"
+              ? "min-h-[38dvh] max-h-[50dvh] lg:min-h-[50dvh] lg:max-h-none"
+              : "min-h-[50dvh]"
+          }`}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -636,7 +639,9 @@ export function StudioApp() {
 
           {/* Floating Camera Shutter & Bottom Controls (in Camera view) */}
           {view === "camera" && (
-            <div className="absolute bottom-5 inset-x-0 z-20 flex items-center justify-center gap-6 px-4 pointer-events-auto">
+            <div className={`absolute bottom-5 inset-x-0 z-20 items-center justify-center gap-6 px-4 pointer-events-auto transition-opacity duration-200 ${
+              panelOpen ? "hidden lg:flex" : "flex"
+            }`}>
               {/* Record Clip */}
               <button
                 type="button"
@@ -708,36 +713,31 @@ export function StudioApp() {
         </aside>
       </div>
 
-      {/* Mobile Sliding Bottom Sheet (< lg) */}
+      {/* Mobile Sliding Bottom Sheet (< lg) - NO dark overlay so live camera is 100% visible */}
       <div
-        className={`fixed inset-0 bg-black/60 z-30 lg:hidden transition-opacity duration-300 ${panelOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-          }`}
-        onClick={() => setPanelOpen(false)}
-        aria-hidden="true"
-      />
-      <div
-        className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/15 rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out lg:hidden max-h-[75dvh] ${panelOpen ? "translate-y-0" : "translate-y-full pointer-events-none"
-          }`}
+        className={`fixed inset-x-0 bottom-0 z-40 flex flex-col bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-accent/20 rounded-t-2xl shadow-[0_-8px_32px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out lg:hidden max-h-[46dvh] ${
+          panelOpen ? "translate-y-0 pointer-events-auto" : "translate-y-full pointer-events-none"
+        }`}
         role="dialog"
         aria-label="Settings and Tuning Drawer"
       >
         <div
-          className="py-2.5 flex justify-center cursor-pointer active:opacity-60"
+          className="py-2 flex justify-center cursor-pointer active:opacity-60"
           onClick={() => setPanelOpen(false)}
         >
           <div className="h-1.5 w-12 rounded-full bg-white/25" />
         </div>
-        <div className="flex items-center justify-between px-5 pb-2.5 border-b border-white/8">
-          <span className="font-mono text-xs tracking-wider text-accent font-medium">SETTINGS & TUNING</span>
+        <div className="flex items-center justify-between px-5 pb-2 border-b border-white/8">
+          <span className="font-mono text-xs tracking-wider text-accent font-medium">LIVE TUNING</span>
           <button
             type="button"
             onClick={() => setPanelOpen(false)}
-            className="text-white/50 hover:text-white p-1 font-mono text-xs"
+            className="text-black bg-accent hover:bg-[#9affce] px-3 py-1 font-mono text-xs font-bold rounded transition-colors active:scale-95"
           >
-            ✕ Close
+            Done ✓
           </button>
         </div>
-        <div className="overflow-y-auto p-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
+        <div className="overflow-y-auto p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <ControlPanel
             settings={activeSettings}
             finish={finish}
