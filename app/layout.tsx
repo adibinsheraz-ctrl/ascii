@@ -49,12 +49,9 @@ export const metadata: Metadata = {
     title: "ASCII",
   },
   icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/arroba_3987167.png", type: "image/png" },
-    ],
-    apple: [{ url: "/favicon.png" }],
-    shortcut: ["/favicon.png"],
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    apple: [{ url: "/icon.png" }],
+    shortcut: ["/icon.png"],
   },
 };
 

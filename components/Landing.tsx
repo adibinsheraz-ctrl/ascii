@@ -6,32 +6,8 @@ export function Landing(props: {
   onCamera: () => void;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col px-5 pt-[max(1.25rem,env(safe-area-inset-top))] bg-[#080808]">
+    <div className="flex min-h-dvh flex-col px-5 pt-[max(2rem,env(safe-area-inset-top))] bg-[#080808]">
       <div className="scanlines pointer-events-none fixed inset-0 opacity-15" aria-hidden />
-
-      {/* Top Bar with Instagram and Gmail icons */}
-      <header className="mx-auto flex w-full max-w-3xl items-center justify-end py-2">
-        <div className="flex items-center gap-2.5">
-          <a
-            href="https://instagram.com/adibinsheraz"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Instagram"
-            title="Instagram (@adibinsheraz)"
-            className="flex items-center justify-center rounded-full p-2 transition-all duration-200 hover:scale-110 bg-white/5 border border-white/10 hover:border-accent/40 hover:bg-white/10 opacity-80 hover:opacity-100"
-          >
-            <img src="/instagram.png" alt="Instagram" className="h-4 w-4 object-contain" />
-          </a>
-          <a
-            href="mailto:adi.binsheraz@gmail.com"
-            aria-label="Gmail"
-            title="Gmail (adi.binsheraz@gmail.com)"
-            className="flex items-center justify-center rounded-full p-2 transition-all duration-200 hover:scale-110 bg-white/5 border border-white/10 hover:border-accent/40 hover:bg-white/10 opacity-80 hover:opacity-100"
-          >
-            <img src="/gmail.png" alt="Gmail" className="h-4 w-4 object-contain" />
-          </a>
-        </div>
-      </header>
 
       <main id="main" className="fade-in mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center py-8">
         {/* Wordmark */}
