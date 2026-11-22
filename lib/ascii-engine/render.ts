@@ -58,7 +58,7 @@ function context2d(
   return canvas.getContext("2d") as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null;
 }
 
-const UNIFORM_MODES = new Set(["mono", "phosphor", "amber", "ice", "custom"]);
+
 
 export function renderGridToContext(params: {
   ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
@@ -146,8 +146,8 @@ function applyFinish(
       bctx.drawImage(ctx.canvas as CanvasImageSource, 0, 0);
       ctx.save();
       ctx.globalCompositeOperation = "screen";
-      ctx.filter = `blur(${Math.max(1.5, width * 0.0035)}px)`;
-      ctx.globalAlpha = finish.glow * 0.4;
+      ctx.filter = `blur(${Math.max(1.0, width * 0.0018)}px)`;
+      ctx.globalAlpha = finish.glow * 0.25;
       ctx.drawImage(blur as CanvasImageSource, 0, 0);
       ctx.filter = "none";
       ctx.restore();

@@ -381,6 +381,7 @@ export function StudioApp() {
     const appliedSettings = { ...liveSettingsRef.current };
     setSettings(appliedSettings);
 
+    // Grab frame buffer synchronously before stopping stream to eliminate hand shake motion blur
     const c = document.createElement("canvas");
     c.width = video.videoWidth;
     c.height = video.videoHeight;

@@ -38,8 +38,8 @@ export function useCamera() {
           audio: false,
           video: {
             facingMode: { ideal: nextFacing },
-            width: { ideal: profile.recommendedCamWidth },
-            height: { ideal: profile.recommendedCamHeight },
+            width: { ideal: Math.max(1920, profile.recommendedCamWidth) },
+            height: { ideal: Math.max(1080, profile.recommendedCamHeight) },
             frameRate: { ideal: profile.tier === "high" ? 60 : 30 },
           },
         });

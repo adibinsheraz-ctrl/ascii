@@ -4,7 +4,6 @@
  */
 
 import { srgbToLinear, linearLuma } from "./color";
-import { lookupLive } from "./glyphs";
 import type { AsciiCell, AsciiGrid, AsciiSettings, GlyphBank } from "./types";
 import { studioRows } from "./studio";
 
@@ -38,30 +37,7 @@ function ensureState(state: LiveState, cols: number, rows: number): void {
   state.rows = rows;
 }
 
-function autoExposureContrast(pixels: Uint8ClampedArray): { gain: number; offset: number; gamma: number } {
-  let min = 1;
-  let max = 0;
-  let sum = 0;
-  const step = 16;
-  let n = 0;
-  for (let i = 0; i < pixels.length; i += 4 * step) {
-    const y = linearLuma(
-      srgbToLinear(pixels[i]),
-      srgbToLinear(pixels[i + 1]),
-      srgbToLinear(pixels[i + 2]),
-    );
-    if (y < min) min = y;
-    if (y > max) max = y;
-    sum += y;
-    n++;
-  }
-  const mean = n ? sum / n : 0.5;
-  const span = Math.max(0.08, max - min);
-  const gain = 0.92 / span;
-  const offset = 0.04 - min * gain;
-  const gamma = mean < 0.22 ? 0.85 : mean > 0.72 ? 1.08 : 0.95;
-  return { gain, offset, gamma };
-}
+
 
 export function convertLive(
   frame: ImageData,
