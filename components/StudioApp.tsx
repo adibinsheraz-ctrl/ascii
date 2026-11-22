@@ -375,41 +375,76 @@ export function StudioApp() {
     if (!video || !video.videoWidth) return;
     haptic(18);
     setBusy(true);
+    setStatus("Hold still…");
+
+    // ── Step 1: Let the camera stabilize after the button press ──────────────
+    // Wait ~250 ms worth of frames so hand-shake from tapping settles before
+    // we grab the frame. requestVideoFrameCallback gives us real decoded frames.
+    const waitFrames = (n: number) =>
+      new Promise<void>((resolve) => {
+        const vf = video as HTMLVideoElement & {
+          requestVideoFrameCallback?: (cb: () => void) => number;
+        };
+        let count = 0;
+        const step = () => {
+          if (++count >= n) return resolve();
+          if (vf.requestVideoFrameCallback) {
+            vf.requestVideoFrameCallback(step);
+          } else {
+            requestAnimationFrame(step);
+          }
+        };
+        if (vf.requestVideoFrameCallback) {
+          vf.requestVideoFrameCallback(step);
+        } else {
+          requestAnimationFrame(step);
+        }
+      });
+
+    // 8 frames at 30fps ≈ 267ms — enough for most hand-shake to die down
+    await waitFrames(8);
+
     setStatus("Processing photo");
 
-    // Wait for the very next video frame so we capture the freshest possible image
-    await new Promise<void>((resolve) => {
-      const vf = video as HTMLVideoElement & {
-        requestVideoFrameCallback?: (cb: () => void) => number;
-      };
-      if (vf.requestVideoFrameCallback) {
-        vf.requestVideoFrameCallback(() => resolve());
-      } else {
-        requestAnimationFrame(() => resolve());
-      }
-    });
-
-    // Retain exact settings applied by the user on the live camera
-    const appliedSettings = { ...liveSettingsRef.current };
+    // ── Step 2: Use FULL quality settings for the still (not live overrides) ─
+    // Live settings sacrifice quality for speed (no CLAHE, no dither, low
+    // sharpness). For a snapshot we merge the user's live UI choices (columns,
+    // colorMode, etc.) on top of full-quality defaults.
+    const liveSnap = liveSettingsRef.current;
+    const appliedSettings: AsciiSettings = {
+      ...settings,            // full-quality base (CLAHE, dither, full sharpness)
+      columns:     liveSnap.columns,
+      colorMode:   liveSnap.colorMode,
+      customAccent: liveSnap.customAccent,
+      duotoneLow:  liveSnap.duotoneLow,
+      duotoneHigh: liveSnap.duotoneHigh,
+      ramp:        liveSnap.ramp,
+      customRamp:  liveSnap.customRamp,
+      invert:      liveSnap.invert,
+    };
     setSettings(appliedSettings);
 
-    // Capture at native video resolution (no DPR scaling – the video pixel data
-    // is already at the sensor resolution; scaling up would add no detail)
+    // ── Step 3: Capture the stabilised frame at native sensor resolution ──────
     const c = document.createElement("canvas");
-    c.width = video.videoWidth;
+    c.width  = video.videoWidth;
     c.height = video.videoHeight;
-    const ctx = c.getContext("2d");
-    if (!ctx) return;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) { setBusy(false); return; }
+
     if (mirror) {
       ctx.translate(c.width, 0);
       ctx.scale(-1, 1);
     }
     ctx.drawImage(video, 0, 0);
+
+    // ── Step 4: Stop stream AFTER draw so the frame is fully committed ────────
     const image = ctx.getImageData(0, 0, c.width, c.height);
     sourceRef.current = image;
     setSourceDim({ width: image.width, height: image.height });
     stopStream();
     setView("image");
+
+    // ── Step 5: Run at full quality ───────────────────────────────────────────
     await runStudio(image, appliedSettings);
   };
 
