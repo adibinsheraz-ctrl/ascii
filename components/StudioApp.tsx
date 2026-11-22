@@ -377,9 +377,9 @@ export function StudioApp() {
     setBusy(true);
     setStatus("Hold still…");
 
-    // ── Step 1: Let the camera stabilize after the button press ──────────────
-    // Wait ~250 ms worth of frames so hand-shake from tapping settles before
-    // we grab the frame. requestVideoFrameCallback gives us real decoded frames.
+    // ── Step 1: Stabilise — wait 15 frames (~500 ms at 30fps) ────────────────
+    // This lets any hand-shake from touching the button fully die down before
+    // we sample the video stream.
     const waitFrames = (n: number) =>
       new Promise<void>((resolve) => {
         const vf = video as HTMLVideoElement & {
@@ -401,30 +401,40 @@ export function StudioApp() {
         }
       });
 
-    // 8 frames at 30fps ≈ 267ms — enough for most hand-shake to die down
-    await waitFrames(8);
+    await waitFrames(15); // ≈ 500 ms
 
     setStatus("Processing photo");
 
-    // ── Step 2: Use FULL quality settings for the still (not live overrides) ─
-    // Live settings sacrifice quality for speed (no CLAHE, no dither, low
-    // sharpness). For a snapshot we merge the user's live UI choices (columns,
-    // colorMode, etc.) on top of full-quality defaults.
+    // ── Step 2: Maximum quality settings ─────────────────────────────────────
+    // Preserve only the visual/style choices the user made in the UI;
+    // push every quality lever to maximum for the still capture.
     const liveSnap = liveSettingsRef.current;
     const appliedSettings: AsciiSettings = {
-      ...settings,            // full-quality base (CLAHE, dither, full sharpness)
-      columns:     liveSnap.columns,
-      colorMode:   liveSnap.colorMode,
-      customAccent: liveSnap.customAccent,
-      duotoneLow:  liveSnap.duotoneLow,
-      duotoneHigh: liveSnap.duotoneHigh,
-      ramp:        liveSnap.ramp,
-      customRamp:  liveSnap.customRamp,
-      invert:      liveSnap.invert,
+      // Quality maximums
+      columns:         240,            // highest detail grid
+      contrast:        1.40,           // punchy contrast
+      brightness:      0.0,
+      gamma:           0.88,           // slightly darker gamma = richer blacks
+      sharpness:       1.0,            // maximum sharpness
+      edgeStrength:    0.80,           // strong edge detection
+      dither:          "floyd-steinberg", // best dithering for stills
+      clahe:           true,           // local contrast enhancement
+      denoise:         true,           // reduce sensor noise
+      autoLevels:      true,           // auto white-balance / levels
+      faceAware:       true,           // prioritise face detail
+      invertBackground: false,
+      ramp:            "detailed",     // richest character set
+      // User visual preferences preserved
+      colorMode:       liveSnap.colorMode,
+      customAccent:    liveSnap.customAccent,
+      duotoneLow:      liveSnap.duotoneLow,
+      duotoneHigh:     liveSnap.duotoneHigh,
+      customRamp:      liveSnap.customRamp,
+      invert:          liveSnap.invert,
     };
     setSettings(appliedSettings);
 
-    // ── Step 3: Capture the stabilised frame at native sensor resolution ──────
+    // ── Step 3: Capture at native sensor resolution with canvas sharpening ────
     const c = document.createElement("canvas");
     c.width  = video.videoWidth;
     c.height = video.videoHeight;
@@ -437,15 +447,45 @@ export function StudioApp() {
     }
     ctx.drawImage(video, 0, 0);
 
-    // ── Step 4: Stop stream AFTER draw so the frame is fully committed ────────
-    const image = ctx.getImageData(0, 0, c.width, c.height);
-    sourceRef.current = image;
-    setSourceDim({ width: image.width, height: image.height });
+    // Apply a unsharp-mask (sharpen convolution) on the raw pixel data before
+    // the ASCII engine sees it — this compensates for the slight softness that
+    // all CMOS sensors introduce via their anti-aliasing filter.
+    const raw = ctx.getImageData(0, 0, c.width, c.height);
+    const src = new Uint8ClampedArray(raw.data);
+    const w = raw.width, h = raw.height;
+    // Sharpen kernel: centre boost, negative neighbours
+    const kernel = [
+       0, -1,  0,
+      -1,  5, -1,
+       0, -1,  0,
+    ];
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = (y * w + x) * 4;
+        for (let ch = 0; ch < 3; ch++) {
+          const v =
+            kernel[0] * src[((y-1)*w+(x-1))*4+ch] +
+            kernel[1] * src[((y-1)*w+ x   )*4+ch] +
+            kernel[2] * src[((y-1)*w+(x+1))*4+ch] +
+            kernel[3] * src[( y   *w+(x-1))*4+ch] +
+            kernel[4] * src[( y   *w+ x   )*4+ch] +
+            kernel[5] * src[( y   *w+(x+1))*4+ch] +
+            kernel[6] * src[((y+1)*w+(x-1))*4+ch] +
+            kernel[7] * src[((y+1)*w+ x   )*4+ch] +
+            kernel[8] * src[((y+1)*w+(x+1))*4+ch];
+          raw.data[i + ch] = Math.max(0, Math.min(255, v));
+        }
+      }
+    }
+
+    // ── Step 4: Stop stream AFTER all pixel work is done ─────────────────────
+    sourceRef.current = raw;
+    setSourceDim({ width: raw.width, height: raw.height });
     stopStream();
     setView("image");
 
-    // ── Step 5: Run at full quality ───────────────────────────────────────────
-    await runStudio(image, appliedSettings);
+    // ── Step 5: Run studio engine at maximum quality ──────────────────────────
+    await runStudio(raw, appliedSettings);
   };
 
   const startCamera = async () => {
