@@ -377,11 +377,24 @@ export function StudioApp() {
     setBusy(true);
     setStatus("Processing photo");
 
+    // Wait for the very next video frame so we capture the freshest possible image
+    await new Promise<void>((resolve) => {
+      const vf = video as HTMLVideoElement & {
+        requestVideoFrameCallback?: (cb: () => void) => number;
+      };
+      if (vf.requestVideoFrameCallback) {
+        vf.requestVideoFrameCallback(() => resolve());
+      } else {
+        requestAnimationFrame(() => resolve());
+      }
+    });
+
     // Retain exact settings applied by the user on the live camera
     const appliedSettings = { ...liveSettingsRef.current };
     setSettings(appliedSettings);
 
-    // Grab frame buffer synchronously before stopping stream to eliminate hand shake motion blur
+    // Capture at native video resolution (no DPR scaling – the video pixel data
+    // is already at the sensor resolution; scaling up would add no detail)
     const c = document.createElement("canvas");
     c.width = video.videoWidth;
     c.height = video.videoHeight;
