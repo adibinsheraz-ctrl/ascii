@@ -49,7 +49,10 @@ export const metadata: Metadata = {
     title: "ASCII",
   },
   icons: {
-    icon: [{ url: "/icon.png", type: "image/png" }],
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/cpu_4772073.png", type: "image/png" },
+    ],
     apple: [{ url: "/icon.png" }],
     shortcut: ["/icon.png"],
   },
